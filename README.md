@@ -1,4 +1,4 @@
-![result](https://github.com/kaydol/diystreamdeck/assets/7866468/02087b67-d27b-4999-990d-53fe20a51be0)# DIY Stream Deck
+# DIY Stream Deck
 __DIY Stream Deck alternative built with Arduino DUE and 4" MAR4018 NT35510 TFT Touch screen__
 
 In this DIY project I had to write a somewhat complicated program in order for the device to act as a Stream Deck.
