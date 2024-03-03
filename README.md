@@ -86,7 +86,8 @@ By changing the code it is easily possible to
 * configure the padding between the edges of the screen and the buttons
 * configue the spacing between the buttons themselves
 * configure the roundness of the buttons (still treated as squares for the touch coordinate detection)
-* flip the X and Y axis to effectively mirror the (0,0) coordinate to the opposite corner of the screen
+* flip the X and Y axis to modify the order in which the buttons are drawn (change from "up to bottom" to "left to right")
+* change the rotation of the screen
 
 ## TODO 
 * PREV and NEXT config lines were implemented to be used with PREV and NEXT buttons that would appear if the amount of buttons is bigger than what can be fit on one screen (`rows * cols`). However, after seeing how much time it takes to draw the pictures from the SD card pixel by pixel, this idea was scrapped.
