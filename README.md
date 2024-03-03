@@ -7,6 +7,8 @@ The main problem of this project was that the __lcdwiki__ library provided by th
 
 There were additional difficulties involving the Arduino Keyboard library which required a very specific usage to work in my case, poorly soldered ports on my Due, as well as my Due board being the R3 edition which lacks the neccesary hardware upgrade that allows it to boot correctly when connected to the Native USB port - the issue that has been plaguing Arduino Due boards since at least 2014.
 
+The icons were taken from this [Reddit post](https://www.reddit.com/r/Helldivers/comments/1ayhofq/hell_divers_2_stratagems_icons_for_streamdeck/) by __Trexana___.  
+
 ![GitHub Image](/README/result.jpg)
 
 ## Changes to the MAR4018 lcdwiki libraries
@@ -100,8 +102,4 @@ By changing the code it is easily possible to
 ## TODO 
 * PREV and NEXT config lines were implemented to be used with PREV and NEXT buttons that would appear if the amount of buttons is bigger than what can be fit on one screen (`rows * cols`). However, after seeing how much time it takes to draw the pictures from the SD card pixel by pixel, this idea was scrapped.
 * It is possible to add support for several config files and change between them using the PREV NEXT buttons. The selected config file can be stored in a special file created on the SD card.
-
-
-
-
 
