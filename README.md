@@ -1,5 +1,5 @@
 # DIY Stream Deck
-__DIY Stream Deck alternative built with Arduino DUE and 4" MAR4018 NT35510 TFT Touch screen__
+__DIY Stream Deck alternative built with [Arduino DUE](https://docs.arduino.cc/hardware/due/) and 4" MAR4018 NT35510 TFT Touch screen__
 
 In this DIY project I had to write a somewhat complicated program in order for the device to act as a Stream Deck.
 
@@ -52,7 +52,7 @@ Also worth mentioning that at first I tried using the <SD.h> library, but I didn
 
 ## Soldering of additional buttons and a buzzer
 
-Additional buttons were added. They are connected with a 10 KOhm resistors like in the example diagram below, except I am using different signal pins (defined in the code). If you're wondering what those resistors are for, the term is called "button debouncing", refer to the [Arduino tutorials](https://www.arduino.cc/en/Tutorial/BuiltInExamples/Debounce).
+Additional buttons were added. They are connected with a 10 KOhm resistors like in the example diagram below, except I am using different signal pins (defined in the code). 
 
 ![GitHub Image](/README/physical_buttons_wiring.png)
 
