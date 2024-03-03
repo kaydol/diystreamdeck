@@ -10,7 +10,7 @@ There were additional difficulties involving the Arduino Keyboard library which 
 ## Changes to the MAR4018 lcdwiki libraries
 The specific modifications done to the libraries provided by the screen manufacturer are not meant to be non-destructive and likely break the compatibility of the library with other boards that they were actually intended to work with (e.g. Arduino Mega). I only have Arduino Due, so I am not able to verify how the changes might have affected other boards. 
 
-Most of the changes are derived from [the findings](https://forum.arduino.cc/t/arduino-due-and-nt35510-tft-screen/1131769/3) of __hml_2__ [and conclusions](https://forum.arduino.cc/t/mega-tft-shield-used-on-arduino-due/1134353/9) of *ZinggJM*. Many thanks to these brilliant minds!
+Most of the changes are derived from [the findings](https://forum.arduino.cc/t/arduino-due-and-nt35510-tft-screen/1131769/3) of __hml_2__ [and conclusions](https://forum.arduino.cc/t/mega-tft-shield-used-on-arduino-due/1134353/9) of __ZinggJM__. Many thanks to these brilliant minds!
 
 The original lcdwiki libraries can be found on the [manufacturer's page](http://www.lcdwiki.com/4.0inch_Arduino_Display-Mega2560_NT35510). I've also included both the original and the modified versions of the libraries to this repository. If interested, you are welcome to do the diff on both versions to see what changes are made.
 
