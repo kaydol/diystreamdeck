@@ -38,7 +38,7 @@ The other way is to flash the 16U2 chip with a new BIOS that accounts for the la
 Instead of these 2 good solutions you could also get away with soldering a capacitor together with a resistor to one of the RESET pins, but it's not a reliable solution as the nominal of the capacitor can change from board to board and depends on whatever additional devices and peripherals are plugged in, so DON'T do that.
 
 ## Reading pictures from the SD card and the bottleneck
-Despite being relatively powerful, the 32bit Arduino Due "only" has around 500 KB of memory (which is a lot, BUT not quite enough to store uncompressed BMP pictures in it).
+Despite being relatively powerful, the 32bit Arduino Due "only" has around 500 KB of memory (which is a lot, BUT not quite enough to store all the uncompressed BMP pictures in it).
 
 So the idea was to store pictures on the SD card and read them using the MAR4018 built-in card reader. In practice, the size of the BMP pictures that I am going to use are approx 124 x 124 pixels, which take approx 50 KB each. This means we can read it from the card to the memory in one go and then work with the memory alone. 
 
