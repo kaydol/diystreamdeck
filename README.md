@@ -52,7 +52,7 @@ Also worth mentioning that at first I tried using the <SD.h> library, but I didn
 
 ## Soldering of additional buttons and a buzzer
 
-Additional buttons were added. They are connected with a 10 KOhm resistors like in the example diagram below, except I am using different signal pins (defined in the code):
+Additional buttons were added. They are connected with a 10 KOhm resistors like in the example diagram below, except I am using different signal pins (defined in the code). If you're wondering what those resistors are for, the term is called "button debouncing", refer to the [Arduino tutorials](https://www.arduino.cc/en/Tutorial/BuiltInExamples/Debounce).
 
 ![GitHub Image](/README/physical_buttons_wiring.png)
 
