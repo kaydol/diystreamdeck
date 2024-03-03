@@ -3,11 +3,11 @@ __DIY Stream Deck alternative built with Arduino DUE and 4" MAR4018 NT35510 TFT 
 
 In this DIY project I had to write a somewhat complicated program in order for the device to act as a Stream Deck.
 
-![GitHub Image](/README/result.jpg)
-
 The main problem of this project was that the __lcdwiki__ library provided by the MAR4018 screen manufacturer was not intended to work with Arduino DUE, but rather with Arduino Mega. Hence why none of the examples worked with Due. Despite that, Mega and Due share the same pin configuration which allows the screen to be plugged directly into the Due board, exactly same way as it works with the Mega.
 
 There were additional difficulties involving the Arduino Keyboard library which required a very specific usage to work in my case, poorly soldered ports on my Due, as well as my Due board being the R3 edition which lacks the neccesary hardware upgrade that allows it to boot correctly when connected to the Native USB port - the issue that has been plaguing Arduino Due boards since at least 2014.
+
+![GitHub Image](/README/result.jpg)
 
 ## Changes to the MAR4018 lcdwiki libraries
 The specific modifications done to the libraries provided by the screen manufacturer are not meant to be non-destructive and likely break the compatibility of the library with other boards that they were actually intended to work with (e.g. Arduino Mega). I only have Arduino Due, so I am not able to verify how the changes might have affected other boards. 
