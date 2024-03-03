@@ -50,6 +50,12 @@ __With the current implementation it takes around 15 seconds to draw 15 124 x 12
 
 Also worth mentioning that at first I tried using the <SD.h> library, but I didn't find how to easily customize the pins, so I used the <SDFat.h> library instead.
 
+## Soldering of additional buttons 
+
+Additional buttons were added. They are connected with a 10 KOhm resistors like in the diagram below, except I am using different signal pins (defined in the code):
+
+![GitHub Image](/README/physical_buttons_wiring.png)
+
 ## Customization by config
 One of the ideas on which Stream Deck is founded is being able to reprogram the device to easily customize the icons of the buttons and their functions. In this project, this is achieved by modifying the config file stored on the SD card. The config file has a very simple structure. 
 
