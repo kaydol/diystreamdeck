@@ -10,7 +10,7 @@ There were additional difficulties involving the Arduino Keyboard library which 
 ## Changes to the MAR4018 lcdwiki libraries
 The specific modifications done to the libraries provided by the screen manufacturer are not meant to be non-destructive and likely break the compatibility of the library with other boards that they were actually intended to work with (e.g. Arduino Mega). I only have Arduino Due, so I am not able to verify how the changes might have affected other boards. 
 
-Most of the changes are derived from [the findings of *hml_2*](https://forum.arduino.cc/t/arduino-due-and-nt35510-tft-screen/1131769/3) [and *ZinggJM*](https://forum.arduino.cc/t/mega-tft-shield-used-on-arduino-due/1134353/9). Many thanks to these brilliant minds!
+Most of the changes are derived from [the findings](https://forum.arduino.cc/t/arduino-due-and-nt35510-tft-screen/1131769/3) of __hml_2__ [and conclusions](https://forum.arduino.cc/t/mega-tft-shield-used-on-arduino-due/1134353/9) of *ZinggJM*. Many thanks to these brilliant minds!
 
 The original lcdwiki libraries can be found on the [manufacturer's page](http://www.lcdwiki.com/4.0inch_Arduino_Display-Mega2560_NT35510). I've also included both the original and the modified versions of the libraries to this repository. If interested, you are welcome to do the diff on both versions to see what changes are made.
 
@@ -19,7 +19,7 @@ In order to emulate the keyboard, Arduino Due must be connected using the Native
 
 You shouldn't have this issue if your board is of R3-E or of later revisions. If you don't observe this behavior on your board, well, less headache for you. In short, there are 2 good ways to fix this issue. 
 
-One way is to solder a 10kOhm resistor to the mosfet next to the 6-pin SPI connector (this solution seems to be derived from the R3-E revision of the board where they added a said resistor in there). Thanks to *dancombine* from the Arduino forum for [this solution](https://forum.arduino.cc/t/due-wont-start-after-power-off-on-have-to-reset/247763/44). This is the way I did it and it works really well.
+One way is to solder a 10kOhm resistor to the mosfet next to the 6-pin SPI connector (this solution seems to be derived from the R3-E revision of the board where they added a said resistor in there). Thanks to __dancombine__ from the Arduino forum for [this solution](https://forum.arduino.cc/t/due-wont-start-after-power-off-on-have-to-reset/247763/44). This is the way I did it and it works really well.
 
 ![GitHub Image](/README/before_soldering.jpeg)
 
