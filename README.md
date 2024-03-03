@@ -12,7 +12,7 @@ The specific modifications done to the libraries provided by the screen manufact
 
 Most of the changes are derived from [the findings](https://forum.arduino.cc/t/arduino-due-and-nt35510-tft-screen/1131769/3) of __hml_2__ [and conclusions](https://forum.arduino.cc/t/mega-tft-shield-used-on-arduino-due/1134353/9) of __ZinggJM__. Many thanks to these brilliant minds!
 
-The original lcdwiki libraries can be found on the [manufacturer's page](http://www.lcdwiki.com/4.0inch_Arduino_Display-Mega2560_NT35510). I've also included both the original and the modified versions of the libraries to this repository. If interested, you are welcome to do the diff on both versions to see what changes are made.
+The original lcdwiki libraries can be found on the [manufacturer's page](http://www.lcdwiki.com/4.0inch_Arduino_Display-Mega2560_NT35510). I've also included both the original and the modified versions of the libraries to this repository. If interested, you are welcome to do the diff on both versions to see what changes were made.
 
 ## Fixing the Arduino Due quirks
 In order to emulate the keyboard, Arduino Due must be connected using the Native USB port (as opposed to the Programming USB port). When connected to the Native USB port, my board required a manual press of the RESET button to boot the loaded program. 
