@@ -19,7 +19,7 @@ In order to emulate the keyboard, Arduino Due must be connected using the Native
 
 You shouldn't have this issue if your board is of R3-E or of later revisions. If you don't observe this behavior on your board, well, less headache for you. In short, there are 2 good ways to fix this issue. 
 
-One way is to solder a 10kOhm resistor to the mosfet next to the 6-pin SPI connector (this solution seems to be derived from the R3-E revision of the board where they added a said resistor in there). Thanks to __dancombine__ from the Arduino forum for [this solution](https://forum.arduino.cc/t/due-wont-start-after-power-off-on-have-to-reset/247763/44). This is the way I did it and it works really well.
+One way is to solder a 10kOhm (R99) resistor to the mosfet next to the 6-pin SPI connector (this solution seems to be derived from the R3-E revision of the board where they added a said resistor in there). Thanks to __dancombine__ from the Arduino forum for [this solution](https://forum.arduino.cc/t/due-wont-start-after-power-off-on-have-to-reset/247763/44). This is the way I did it and it works really well.
 
 ![GitHub Image](/README/before_soldering.jpeg)
 
