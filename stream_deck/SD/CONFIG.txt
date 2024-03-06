@@ -1,19 +1,30 @@
 5,3
+next,next.bmp
+prev,prev.bmp
+
 reinforcement.bmp,[ctrl][up][down][right][left][up]
 resupply.bmp,[ctrl][down][down][up][right]
 hellbomb.bmp,[ctrl][down][up][left][down][up][right][down][up]
+stalwart.bmp,[ctrl][down][left][down][up][up][left]
+supply_pack.bmp,[ctrl][down][left][down][up][up][down]
+
 orbital_railgun.bmp,[ctrl][right][up][down][down][right]
 orbital_laser.bmp,[ctrl][right][down][up][right][down]
-# eagle_rearm.bmp,[ctrl][up][up][left][up][right]
-# eagle_cluster_bomb.bmp,[ctrl][up][right][down][down][right]
-# machinegun.bmp,[ctrl][down][left][down][up][right]
-stalwart.bmp,[ctrl][down][left][down][up][up][left]
+orbital_smoke_strike.bmp,[ctrl][right][right][down][up]
+orbital_ems_strike.bmp,[[ctrl]right][right][left][down]
+machinegun.bmp,[ctrl][down][left][down][up][right]
+
 railgun.bmp,[ctrl][down][right][down][up][left][right]
+recoilles_rifle.bmp,[ctrl][down][left][right][right][left]
 autocannon.bmp,[ctrl][down][left][down][up][up][right]
-supply_pack.bmp,[ctrl][down][left][down][up][up][down]
 shield_generator_pack.bmp,[ctrl][down][up][left][right][left][right]
+
 spear.bmp,[ctrl][down][down][up][down][down]
 shield_generator.bmp,[ctrl][down][up][left][right][left][right]
 hmg_emplacement.bmp,[ctrl][down][up][left][right][right][left]
 tesla_tower.bmp,[ctrl][down][up][right][up][left][right]
 
+#eagle_rearm.bmp,[ctrl][up][up][left][up][right]
+#eagle_cluster_bomb.bmp,[ctrl][up][right][down][down][right]
+#guard_dog_rover.bmp,[ctrl][down][up][left][up][right][right]
+#guard_dog.bmp,[ctrl][down][up][left][up][right][down]
