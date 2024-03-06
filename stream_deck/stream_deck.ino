@@ -511,11 +511,16 @@ void loop()
             key = KEY_LEFT_ARROW;
           else if (str.equalsIgnoreCase("ctrl")) 
             key = KEY_LEFT_CTRL;
+          else if (str.length() == 1) {
+            key = str[0];
+          }
 
           //Serialprint("str = '%s', key = %x\n", str.c_str(), key);
-          if (key >= 0) {
-            Keyboard.press(key); delay(DEF_BUTTON_KEY_SEND_DELAY);
-            Keyboard.release(key); delay(DEF_BUTTON_KEY_SEND_DELAY);
+          if (key >= 0 /*&& key != KEY_LEFT_CTRL*/) {
+            Keyboard.press(key);
+            delay(DEF_BUTTON_KEY_SEND_DELAY); 
+            Keyboard.release(key); 
+            delay(DEF_BUTTON_KEY_SEND_DELAY);
           }
           
           i = keys.indexOf('[', i+1);
