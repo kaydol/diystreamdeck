@@ -87,7 +87,7 @@ const String configName = "CONFIG.txt";
 const bool flipBMPs = true; // if true, flips the BMPs (stored upside down by default)
 const bool flipXY = true; // if true, changes the button order from "up to down" to "left to right" 
 const int16_t screenPadding = 6;
-const uint8_t rectangleRound = 12;
+const uint8_t rectangleRoundness = 12;
 const uint8_t rectangleSpacing = 10;
 const uint8_t maxButtons = 200;
 int16_t screenWidth;  
@@ -107,8 +107,8 @@ struct ConfigData {
   ButtonConfig* buttons[maxButtons];
   size_t buttonsCount;
   String cfgName;
-  uint8_t currentPage;
-  bool drawPrevNext;
+  uint8_t currentPageIndex;
+  uint8_t lastPageIndex;
 } config;
 
 void swap(int16_t & a, int16_t & b) {
@@ -138,6 +138,7 @@ void showFatalError(uint8_t textSize, const char* error) {
   my_lcd.Print_String(error,0,0);
   while(1);
 }
+
 
 void setup() 
 {
@@ -183,20 +184,44 @@ void setup()
   if (!sd.begin(SD_CONFIG))
     showFatalError(8, "No SD Card");
   
+  config.buttonPrev.type = DEF_BUTTON_CONFIG_TYPE_PREV;
+  config.buttonNext.type = DEF_BUTTON_CONFIG_TYPE_NEXT;
+
   size_t entries = parseConfig(&config, configName);
   if (entries <= 0) {
     String msg = "No entries in " + configName;
     showFatalError(5, msg.c_str());
   }
-
-  config.currentPage = 0;
-  drawButtons(&config);
   
+  config.currentPageIndex = 0;
+  drawButtons(&config);
+  sd.end();
+
   Keyboard.begin();
   tone(PIN_BUZZER, 1000, 10);
+  
 }
 
+// Calculates number of pages required to show all the buttons for given grid, accounts for "prev" and "next" buttons
+uint8_t getLastPageIndex(size_t buttonsPerScreen, size_t buttonsTotal, bool canFitInTwoPages) {
+  uint8_t index = 0;
+  if (buttonsTotal <= buttonsPerScreen)
+    return index;
+  ++index;
+  size_t buttonsLeft = buttonsTotal - buttonsPerScreen - (canFitInTwoPages ? 1 : 2);
+  while (buttonsLeft > 0) {
+    if (buttonsLeft <= buttonsPerScreen - (canFitInTwoPages ? 1 : 2))
+      return index;
+    buttonsLeft -= (buttonsPerScreen - 2);
+    ++index; 
+  }
+}
 
+size_t getCountOfPreviouslyDrawnButtons(uint8_t currentPageIndex, uint8_t lastPageIndex, size_t buttonsPerScreen) {
+  return currentPageIndex * (buttonsPerScreen - (lastPageIndex == 1 ? 1 : 2));
+}
+
+// Returns amount of buttons, NEXT and PREV buttons are excluded
 size_t parseConfig(ConfigData* cfgData, String cfgName) 
 {
   File cfgFile;
@@ -228,20 +253,28 @@ size_t parseConfig(ConfigData* cfgData, String cfgName)
     if (line.length() <= 0) continue;
     if (line.startsWith("#")) continue;
 
-    String left = line.substring(0, line.indexOf(DEF_CONFIG_LINE_DELIMITER)) + '\0';
+    String left = line.substring(0, line.indexOf(DEF_CONFIG_LINE_DELIMITER));
     String right = line.substring(line.indexOf(DEF_CONFIG_LINE_DELIMITER)+1, line.length());
 
     if (left == NULL || right == NULL)
       showFatalError(5, "Out of memory");
 
-    if (line.equalsIgnoreCase(DEF_CONFIG_PREV_STARTSWITH)) {
+    if (left.equalsIgnoreCase(DEF_CONFIG_PREV_STARTSWITH)) {
       cfgData->buttonPrev.type = DEF_BUTTON_CONFIG_TYPE_PREV;
       cfgData->buttonPrev.path = new String(right);
+      cfgData->buttonPrev.initialized = false;
+      initBMP(&(cfgData->buttonPrev));
+
+      Serialprint("Button %p, type %d\n", &(cfgData->buttonPrev), cfgData->buttonPrev.type);
       continue;
     }
-    if (line.equalsIgnoreCase(DEF_CONFIG_NEXT_STARTSWITH)) {
+    if (left.equalsIgnoreCase(DEF_CONFIG_NEXT_STARTSWITH)) {
       cfgData->buttonNext.type = DEF_BUTTON_CONFIG_TYPE_NEXT;
       cfgData->buttonNext.path = new String(right);
+      cfgData->buttonNext.initialized = false;
+      initBMP(&(cfgData->buttonNext));
+
+      Serialprint("Button %p, type %d", &(cfgData->buttonNext), cfgData->buttonNext.type);
       continue;
     }
     
@@ -259,14 +292,18 @@ size_t parseConfig(ConfigData* cfgData, String cfgName)
 
     cfgData->buttons[entries] = newButton;
     ++entries;
+
+    if (entries >= sizeof(cfgData->buttons) / sizeof(ButtonConfig*))
+      showFatalError(6, "Too many entries!");
   }
 
   cfgFile.close();
 
   cfgData->buttonsCount = entries;
-  cfgData->drawPrevNext = cfgData->buttonsCount > (cfgData->rows * cfgData->cols);
+  bool canFitInTwoPages = entries <= (2 * cfgData->cols * cfgData->rows - 2); 
+  cfgData->lastPageIndex = getLastPageIndex(cfgData->cols * cfgData->rows, entries, canFitInTwoPages);
 
-  Serialprint("%s contains %d entries\n", cfgName.c_str(), entries);
+  Serialprint("%s contains %d entries, last page index = %d\n", cfgName.c_str(), entries, cfgData->lastPageIndex);
 
   return entries;
 }
@@ -277,9 +314,6 @@ uint16_t read16(char * buffer)
   uint16_t high;
   low = buffer[0];
   high = buffer[1];
-
-  //Serialprint("HEX = %x %x\n", low, high);
-
   return (high<<8)|low;
 }
 
@@ -292,6 +326,7 @@ uint32_t read32(char* buffer)
   return (high<<8)|low;   
 }
 
+// If BMP file is valid and can be accessed, fills in button->bmpWidth, button->bmpHeight, button->filePos and then sets button->initiliazied = true
 void initBMP(ButtonConfig* button) 
 {
   button->bmpWidth = 0;
@@ -397,71 +432,89 @@ void drawButtons(ConfigData* cfgData)
 
   char dimensions[15];
   sprintf(dimensions, "%dx%d", cellHeight, cellWidth);
-
-  //Serialprint("Calculated cell size = %s\n", dimensions);
   
-  my_lcd.Set_Draw_color(WHITE);
-  my_lcd.Set_Text_Size(2);
-  my_lcd.Set_Text_colour(GREEN);
-  my_lcd.Set_Text_Back_colour(BLACK);
+  size_t i = getCountOfPreviouslyDrawnButtons(cfgData->currentPageIndex, cfgData->lastPageIndex, cfgData->rows * cfgData->cols);
 
-  if (cfgData->drawPrevNext) {
-    showFatalError(6, "Too many entries!");
-  } else {
-    size_t i = 0;
-    for(uint8_t row = 0; row < cfgData->rows; ++row) 
+  my_lcd.Fill_Screen(BLACK); 
+
+  for(uint8_t row = 0; row < cfgData->rows; ++row)
+  {
+    for(uint8_t col = 0; col < cfgData->cols; ++col)
     {
-      for(uint8_t col = 0; col < cfgData->cols; ++col) 
-      {
-        if (i >= cfgData->buttonsCount) { 
-          // do not draw more buttons than were provided in the cfg 
-          break;
-        }
-        uint16_t x1, y1, x2, y2;
-        
-        if (flipXY) {
-          // Swapped
-          x1 = screenPadding / 2 + row * cellWidth + row * rectangleSpacing;
-          y1 = screenPadding / 2 + col * cellHeight + col * rectangleSpacing;
-          x2 = x1 + cellWidth;
-          y2 = y1 + cellHeight;
-          swap(x1, y1);
-          swap(x2, y2);
-        } else {
-          // Original
-          x1 = screenPadding / 2 + row * cellWidth + row * rectangleSpacing;
-          y1 = screenPadding / 2 + col * cellHeight + col * rectangleSpacing;
-          x2 = x1 + cellWidth;
-          y2 = y1 + cellHeight;
-        }
+      uint16_t x1, y1, x2, y2;
+      
+      if (flipXY) {
+        // Swapped
+        x1 = screenPadding / 2 + row * cellWidth + row * rectangleSpacing;
+        y1 = screenPadding / 2 + col * cellHeight + col * rectangleSpacing;
+        x2 = x1 + cellWidth;
+        y2 = y1 + cellHeight;
+        swap(x1, y1);
+        swap(x2, y2);
+      } else {
+        // Original
+        x1 = screenPadding / 2 + row * cellWidth + row * rectangleSpacing;
+        y1 = screenPadding / 2 + col * cellHeight + col * rectangleSpacing;
+        x2 = x1 + cellWidth;
+        y2 = y1 + cellHeight;
+      }
 
-        cfgData->buttons[i]->x1 = x1;
-        cfgData->buttons[i]->x2 = x2;
-        cfgData->buttons[i]->y1 = y1;
-        cfgData->buttons[i]->y2 = y2;
+      ButtonConfig* button = NULL;
 
-        //Serialprint("Square (%d, %d) (%d %d)\n", x1, y1, x2, y2);
+      if (cfgData->lastPageIndex > 1 && row == cfgData->rows - 1 && col == cfgData->cols - 1) {
+        button = &(cfgData->buttonNext);
+      }
+      else if (cfgData->lastPageIndex > 1 && row == cfgData->rows - 1 && col == cfgData->cols - 2) {
+        button = &(cfgData->buttonPrev);
+      }
+      else if (cfgData->currentPageIndex == 0 && cfgData->lastPageIndex != 0 && row == cfgData->rows - 1 && col == cfgData->cols - 1) {
+        // first page, only draw next, draw it in the last cell 
+        button = &(cfgData->buttonNext);
+      }
+      else if (cfgData->currentPageIndex == cfgData->lastPageIndex && cfgData->lastPageIndex != 0 && row == cfgData->rows - 1 && col == cfgData->cols - 1) {
+        // last page, only draw prev, draw it in the last cell 
+        button = &(cfgData->buttonPrev);
+      }
+      else {
+        if (i < cfgData->buttonsCount)
+          button = cfgData->buttons[i];
+      }
+
+      if (button == NULL)
+        continue;
+      
+      Serialprint("Button %i, %s\n", i, button->path->c_str());
+
+      button->x1 = x1;
+      button->x2 = x2;
+      button->y1 = y1;
+      button->y2 = y2;
+
+      my_lcd.Set_Text_Size(2);
+      my_lcd.Set_Text_colour(GREEN);
+      my_lcd.Set_Text_Back_colour(BLACK);
+
+      if (button->type == DEF_BUTTON_CONFIG_TYPE_NEXT)
+        my_lcd.Print_String(">", x1+cellWidth/5, y1+cellHeight/2);
+      else if (button->type == DEF_BUTTON_CONFIG_TYPE_PREV)
+        my_lcd.Print_String("<", x1+cellWidth/5, y1+cellHeight/2);
+      else 
         my_lcd.Print_String(dimensions, x1+cellWidth/5, y1+cellHeight/2);
-        my_lcd.Set_Draw_color(WHITE);
-        my_lcd.Draw_Round_Rectangle(x1, y1, x2, y2, rectangleRound);
-        
-        //Serialprint("Drawing icon: %s\n", (*(cfgData->buttons[i]->path)).c_str());
-
-        if (cfgData->buttons[i]->initialized) {
-          uint16_t x0 = x1 + (cellWidth-cfgData->buttons[i]->bmpWidth)/2;
-          uint16_t y0 = y1 + (cellHeight-cfgData->buttons[i]->bmpHeight)/2;
-          drawBMP(cfgData->buttons[i], x0, y0);
-        }
-        
-        ++i;
+      
+      my_lcd.Set_Draw_color(WHITE);
+      my_lcd.Draw_Round_Rectangle(x1, y1, x2, y2, rectangleRoundness);
+      
+      if (button->initialized) {
+        uint16_t x0 = x1 + (cellWidth-button->bmpWidth)/2;
+        uint16_t y0 = y1 + (cellHeight-button->bmpHeight)/2;
+        drawBMP(button, x0, y0);
       }
-      if (i >= cfgData->buttonsCount) {
-        // do not draw more buttons than were provided in the cfg 
-        break;
-      }
+      
+      ++i;
     }
   }
 }
+
 
 void loop() 
 {
@@ -486,18 +539,51 @@ void loop()
     // the Touch does not seem to be affected by flipXY 
     //if (flipXY)
     //  swap(x, y);
+
+    if (config.buttonPrev.x1 < x && x < config.buttonPrev.x2 && config.buttonPrev.y1 < y && y < config.buttonPrev.y2) {
+      tone(PIN_BUZZER, 1000, 10);
+      config.currentPageIndex = (config.currentPageIndex == 0 ? config.lastPageIndex : config.currentPageIndex - 1);
+
+      SdFat sd;
+      if (!sd.begin(SD_CONFIG))
+        showFatalError(8, "No SD Card");
+      
+      drawButtons(&config);
+      
+      sd.end();
+      return;
+    }
+    if (config.buttonNext.x1 < x && x < config.buttonNext.x2 && config.buttonNext.y1 < y && y < config.buttonNext.y2) {
+      tone(PIN_BUZZER, 1000, 10);
+      config.currentPageIndex = (config.currentPageIndex == config.lastPageIndex ? 0 : config.currentPageIndex + 1);
+      
+      SdFat sd;
+      if (!sd.begin(SD_CONFIG))
+        showFatalError(8, "No SD Card");
+      
+      drawButtons(&config);
+      
+      sd.end();
+
+      return;
+    }
+
+    size_t buttonsPerScreen = config.rows * config.cols;
+    size_t i0 = getCountOfPreviouslyDrawnButtons(config.currentPageIndex, config.lastPageIndex, buttonsPerScreen);
+    size_t iN = i0 + buttonsPerScreen > config.buttonsCount ? config.buttonsCount : i0 + buttonsPerScreen;
     
-    for (size_t i = 0; i < config.buttonsCount; ++i) 
+    for (size_t i = i0; i < iN; ++i) 
     {
       ButtonConfig* b = config.buttons[i];
+
       if (b->x1 < x && x < b->x2 && b->y1 < y && y < b->y2) {
         // button pressed
         Serialprint("%s\n", b->path->c_str());
         tone(PIN_BUZZER, 1000, 10);
         String keys = *(b->keys);
-        int i = keys.indexOf('[');
-        while(i >= 0) {
-          String str = keys.substring(i+1, keys.indexOf(']', i));
+        int index = keys.indexOf('[');
+        while(index >= 0) {
+          String str = keys.substring(index+1, keys.indexOf(']', index));
           //Serialprint("%d Key pressed = %s\n", i, str.c_str());
 
           uint16_t key = -1;
@@ -516,14 +602,12 @@ void loop()
           }
 
           //Serialprint("str = '%s', key = %x\n", str.c_str(), key);
-          if (key >= 0 /*&& key != KEY_LEFT_CTRL*/) {
-            Keyboard.press(key);
-            delay(DEF_BUTTON_KEY_SEND_DELAY); 
-            Keyboard.release(key); 
-            delay(DEF_BUTTON_KEY_SEND_DELAY);
+          if (key >= 0) {
+            Keyboard.press(key);    delay(DEF_BUTTON_KEY_SEND_DELAY); 
+            Keyboard.release(key);  delay(DEF_BUTTON_KEY_SEND_DELAY);
           }
           
-          i = keys.indexOf('[', i+1);
+          index = keys.indexOf('[', index+1);
         }
         
         delay(DEF_BUTTON_PRESS_DELAY);
