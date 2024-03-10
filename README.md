@@ -71,11 +71,16 @@ One of the ideas on which Stream Deck is founded is being able to reprogram the 
 * Example config:
 ```
   5,3
+  next,next.bmp
+  prev,prev.bmp
+  selectall,helldivers2.bmp
+  
   reinforcement.bmp,[ctrl][up][down][right][left][up]
   resupply.bmp,[ctrl][down][down][up][right]
   hellbomb.bmp,[ctrl][down][up][left][down][up][right][down][up]
   orbital_railgun.bmp,[ctrl][right][up][down][down][right]
   orbital_laser.bmp,[ctrl][right][down][up][right][down]
+  
   # eagle_rearm.bmp,[ctrl][up][up][left][up][right]
   # eagle_cluster_bomb.bmp,[ctrl][up][right][down][down][right]
   # machinegun.bmp,[ctrl][down][left][down][up][right]
@@ -85,6 +90,7 @@ One of the ideas on which Stream Deck is founded is being able to reprogram the 
   supply_pack.bmp,[ctrl][down][left][down][up][up][down]
   shield_generator_pack.bmp,[ctrl][down][up][left][right][left][right]
   spear.bmp,[ctrl][down][down][up][down][down]
+  
   shield_generator.bmp,[ctrl][down][up][left][right][left][right]
   hmg_emplacement.bmp,[ctrl][down][up][left][right][right][left]
   tesla_tower.bmp,[ctrl][down][up][right][up][left][right]
@@ -94,12 +100,8 @@ One of the ideas on which Stream Deck is founded is being able to reprogram the 
 By changing the code it is easily possible to 
 * enable\disable flipping of the BMP pictures (needed because BMPs are stored upside down in memory)
 * configure the padding between the edges of the screen and the buttons
-* configue the spacing between the buttons themselves
+* configure the spacing between the buttons themselves
 * configure the roundness of the buttons (still treated as squares for the touch coordinate detection)
 * flip the X and Y axis to modify the order in which the buttons are drawn (change from "up to bottom" to "left to right")
 * change the rotation of the screen
-
-## TODO 
-* PREV and NEXT config lines were implemented to be used with PREV and NEXT buttons that would appear if the amount of buttons is bigger than what can be fit on one screen (`rows * cols`). However, after seeing how much time it takes to draw the pictures from the SD card pixel by pixel, this idea was scrapped.
-* It is possible to add support for several config files and change between them using the PREV NEXT buttons. The selected config file can be stored in a special file created on the SD card.
 
