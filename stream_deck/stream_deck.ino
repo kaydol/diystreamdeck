@@ -1,54 +1,13 @@
 
-// Read as "DISPLAY PIN TIRQ CORRESPONDS TO DUE PIN 44"
-#define PIN_TIRQ 44 // Touch screen interrupt control pin (low level active)
-#define PIN_MISO 50 // SPI bus input pin 
-#define PIN_MOSI 51 // SPI bus output pin
-#define PIN_EX_CLK 52 // SPI bus clock pin
-#define PIN_TP_CS 53 // Touch screen chip select pin (low level active)
-
-#define PIN_RS 38 // LCD register / data selection pin (high level: data, low level:register)
-#define PIN_WR 39 // LCD write control pin  
-#define PIN_CS 40 // LCD chip select control pin (low level active) 
-#define PIN_RST 41 // LCD reset control pin (low level active) 
-#define PIN_RD 43 // LCD read control pin 
-
-// Read as "LCD SD PIN CONNECTED TO DUE PIN 48"
-#define PIN_SD_CS 48 // Extended reference: SD card select pin (LCD SD)
-
-                             /*  r     g    b */
-#define BLACK        0x0000  /*   0,   0,   0 */
-#define BLUE         0x001F  /*   0,   0, 255 */
-#define RED          0xF800  /* 255,   0,   0 */
-#define GREEN        0x07E0  /*   0, 255,   0 */
-#define CYAN         0x07FF  /*   0, 255, 255 */
-#define MAGENTA      0xF81F  /* 255,   0, 255 */
-#define YELLOW       0xFFE0  /* 255, 255,   0 */
-#define WHITE        0xFFFF  /* 255, 255, 255 */
-#define NAVY         0x000F  /*   0,   0, 128 */
-#define DARKGREEN    0x03E0  /*   0, 128,   0 */
-#define DARKCYAN     0x03EF  /*   0, 128, 128 */
-#define MAROON       0x7800  /* 128,   0,   0 */
-#define PURPLE       0x780F  /* 128,   0, 128 */
-#define OLIVE        0x7BE0  /* 128, 128,   0 */
-#define LIGHTGREY    0xC618  /* 192, 192, 192 */
-#define DARKGREY     0x7BEF  /* 128, 128, 128 */
-#define ORANGE       0xFD20  /* 255, 165,   0 */
-#define GREENYELLOW  0xAFE5  /* 173, 255,  47 */
-#define PINK         0xF81F  /* 255,   0, 255 */
-
-#define PIN_BUZZER 13
-#define PIN_BUTTONS_POWER 11 // Supplies constant voltage to both buttons
-#define PIN_BUTTON_1 9 // connected to this pin as well as to gnd via 10kOhm resistor
-#define PIN_BUTTON_2 8 // connected to this pin as well as to gnd via 10kOhm resistor
-
-//---------------------------------------------------------------------------------
+#include "AppDefinitions.h"
+#include "Serialprint.h" // for better printing, courtesy of David Pankhurst
+#include "Button.h"
 
 #include <SdFat.h>
 #include <Keyboard.h>
 #include <LCDWIKI_GUI.h> //Core graphics library
 #include <LCDWIKI_KBV.h> //Hardware-specific library
 #include <LCDWIKI_TOUCH.h> //touch screen library
-#include "Serialprint.h" // for better printing, courtesy of David Pankhurst
 
 #if SPI_DRIVER_SELECT != 2  // Must be set in SdFat/SdFatConfig.h
   #error SPI_DRIVER_SELECT must be two in SdFat/SdFatConfig.h
@@ -63,55 +22,27 @@ SoftSpiDriver<PIN_MISO, PIN_MOSI, PIN_EX_CLK> softSpi;
   #define SD_CONFIG SdSpiConfig(PIN_SD_CS, SHARED_SPI, SD_SCK_MHZ(0), &softSpi)
 #endif  // ENABLE_DEDICATED_SPI
 
-
 LCDWIKI_KBV my_lcd(NT35510, PIN_CS, PIN_RS, PIN_WR, PIN_RD, PIN_RST); //model,cs,cd,wr,rd,reset
 LCDWIKI_TOUCH my_touch(PIN_TP_CS, PIN_EX_CLK, PIN_MISO, PIN_MOSI, PIN_TIRQ); //tcs,tclk,tdout,tdin,tirq
 
-#define DEF_ROTATION_0 0 
-#define DEF_ROTATION_90 1 
-#define DEF_ROTATION_180 2
-#define DEF_ROTATION_270 3
-
 const String configName = "CONFIG.txt";
-#define DEF_CONFIG_LINE_DELIMITER ','
-#define DEF_CONFIG_PREV_STARTSWITH "PREV" // if line starts with PREV, expect path to PREV button icon
-#define DEF_CONFIG_NEXT_STARTSWITH "NEXT" // if line starts with NEXT, expect path to NEXT button icon
-#define DEF_CONFIG_SELECT_ALL_STARTSWITH "SELECTALL" // if line starts with SELECTALL, expect path to SELECTALL button icon
 
-#define DEF_BUTTON_TYPE_UNDEFINED 0
-#define DEF_BUTTON_TYPE_PREV 1
-#define DEF_BUTTON_TYPE_NEXT 2
-#define DEF_BUTTON_TYPE_SELECT_ALL 3
-
-#define DEF_KEY_SEND_DELAY 50
-#define DEF_PHYSICAL_PRESS_DELAY 500
-
-const bool flipBMPs = true; // if true, flips the BMPs (stored upside down by default)
 const bool flipXY = true; // if true, changes the button order from "up to down" to "left to right" 
 const int16_t screenPadding = 6;
-const uint8_t rectangleRoundness = 12;
 const uint8_t rectangleSpacing = 10;
 const uint8_t maxButtons = 200;
 int16_t screenWidth;  
 int16_t screenHeight;
 
-struct ButtonConfig {
-  String *path, *keys;
-  int8_t type;
-  bool initialized; // bmpHeight, bmpWidth, filePos are set
-  bool selected, onScreen;
-  uint16_t bmpHeight, bmpWidth, bmpX0, bmpY0, x1, x2, y1, y2;
-  uint64_t filePos;
-};
-
 struct ConfigData {
   String cfgName;
   uint8_t rows, cols, currentPageIndex, lastPageIndex;
   size_t buttonsCount, selectedButtonsCount;
-  ButtonConfig buttonNext, buttonPrev, buttonSelectAll;
-  ButtonConfig *buttons[maxButtons], *selectedButtons[maxButtons];
+  Button ButtonNext, ButtonPrev, ButtonSelectAll;
+  Button *buttons[maxButtons], *selectedButtons[maxButtons];
   bool isInButtonSelection;
 } config;
+
 
 void swap(int16_t & a, int16_t & b) {
   int16_t c; c = a; a = b; b = c;
@@ -129,11 +60,12 @@ void tone(uint32_t buzzer, uint32_t tone_freq, uint32_t tone_duration)
   digitalWrite(buzzer, LOW);
 }
 
-bool isButtonPressed(uint32_t pin) {
+bool isPhysicalButtonPressed(uint32_t pin) {
   return digitalRead(pin) == HIGH;
 }
 
 void showFatalError(uint8_t textSize, const char* error) {
+  Serialprint("%s\n", error);
   my_lcd.Set_Text_Back_colour(BLUE);
   my_lcd.Set_Text_colour(WHITE);    
   my_lcd.Set_Text_Size(textSize);
@@ -181,20 +113,9 @@ void setup()
 
   my_touch.TP_Init(my_lcd.Get_Rotation(),my_lcd.Get_Display_Width(),my_lcd.Get_Display_Height()); // works for lcd rotation 90 and 270
 
-  config.buttonPrev.selected = false;
-  config.buttonPrev.initialized = false;
-  config.buttonPrev.onScreen = false;
-  config.buttonPrev.type = DEF_BUTTON_TYPE_PREV;
-  
-  config.buttonNext.selected = false;
-  config.buttonNext.initialized = false;
-  config.buttonNext.onScreen = false;
-  config.buttonNext.type = DEF_BUTTON_TYPE_NEXT;
-
-  config.buttonSelectAll.selected = false;
-  config.buttonSelectAll.initialized = false;
-  config.buttonSelectAll.onScreen = false;
-  config.buttonSelectAll.type = DEF_BUTTON_TYPE_SELECT_ALL;
+  config.ButtonPrev.SetType(DEF_BUTTON_TYPE_PREV);
+  config.ButtonNext.SetType(DEF_BUTTON_TYPE_NEXT);
+  config.ButtonSelectAll.SetType(DEF_BUTTON_TYPE_SELECT_ALL);
   
   size_t entries = parseConfig(&config, configName);
   if (entries <= 0) {
@@ -280,43 +201,30 @@ size_t parseConfig(ConfigData* cfgData, String cfgName)
       showFatalError(5, "Out of memory");
 
     if (left.equalsIgnoreCase(DEF_CONFIG_PREV_STARTSWITH)) {
-      cfgData->buttonPrev.type = DEF_BUTTON_TYPE_PREV;
-      cfgData->buttonPrev.path = new String(right);
-      cfgData->buttonPrev.initialized = false;
-      initBMP(&(cfgData->buttonPrev));
+      cfgData->ButtonPrev.InitBMP(new String(right));
       continue;
     }
     if (left.equalsIgnoreCase(DEF_CONFIG_NEXT_STARTSWITH)) {
-      cfgData->buttonNext.type = DEF_BUTTON_TYPE_NEXT;
-      cfgData->buttonNext.path = new String(right);
-      cfgData->buttonNext.initialized = false;
-      initBMP(&(cfgData->buttonNext));
+      cfgData->ButtonNext.InitBMP(new String(right));
       continue;
     }
     if (left.equalsIgnoreCase(DEF_CONFIG_SELECT_ALL_STARTSWITH)) {
-      cfgData->buttonSelectAll.type = DEF_BUTTON_TYPE_SELECT_ALL;
-      cfgData->buttonSelectAll.path = new String(right);
-      cfgData->buttonSelectAll.initialized = false;
-      initBMP(&(cfgData->buttonSelectAll));
+      cfgData->ButtonSelectAll.InitBMP(new String(right));
       continue;
     }
 
-    ButtonConfig* newButton = (ButtonConfig*) malloc (sizeof(ButtonConfig));
+    Button* newButton = new Button();
     
     if (newButton == NULL)
       showFatalError(5, "Out of memory");
     
-    newButton->path = new String(left);
-    newButton->keys = new String(right);
-    newButton->type = DEF_BUTTON_TYPE_UNDEFINED;
-    newButton->initialized = false;
-    newButton->selected = false;
-    initBMP(newButton);
+    newButton->SetKeys(new String(right));
+    newButton->InitBMP(new String(left));
 
     cfgData->buttons[entries] = newButton;
     ++entries;
 
-    if (entries >= sizeof(cfgData->buttons) / sizeof(ButtonConfig*))
+    if (entries >= sizeof(cfgData->buttons) / sizeof(Button*))
       showFatalError(6, "Too many entries!");
   }
 
@@ -327,121 +235,14 @@ size_t parseConfig(ConfigData* cfgData, String cfgName)
   return entries;
 }
 
-uint16_t read16(char * buffer)
-{
-  uint8_t low;
-  uint16_t high;
-  low = buffer[0];
-  high = buffer[1];
-  return (high<<8)|low;
-}
-
-uint32_t read32(char* buffer)
-{
-  uint16_t low;
-  uint32_t high;
-  low = read16(buffer);
-  high = read16(buffer+2);
-  return (high<<8)|low;   
-}
-
-// If BMP file is valid and can be accessed, fills in button->bmpWidth, button->bmpHeight, button->filePos and then sets button->initiliazied = true
-void initBMP(ButtonConfig* button) 
-{
-  button->bmpWidth = 0;
-  button->bmpHeight = 0;
-
-  File f; 
-  bool success = f.open(button->path->c_str()); 
-  if (!success) {
-    Serialprint("Could not open file %s \n", button->path->c_str());
-    return;
+template<typename T>
+void PrintBinary(T val) {
+  for(size_t i = 0; i < sizeof(T) * 8; ++i) {
+    if (i > 0 && i % 8 == 0)
+      Serialprint(" ");
+    Serialprint("%d", (val & (1 << i)) >> i);
   }
-
-  f.rewind();
-
-  char buffer16[2];
-  char buffer32[4];
-  size_t read;
-  
-  read = f.readBytes(buffer16, sizeof(buffer16));
-
-  if(read16(buffer16) != 0x4D42) // File is not BMP 
-    return;
-  
-  //read = f.readBytes(buffer32, sizeof(buffer32));
-  //uint32_t bmpFileSize = read32(buffer32);
-
-  f.seek(18);
-
-  read = f.readBytes(buffer32, sizeof(buffer32));
-  int bmpWidth  = read32(buffer32);
-  read = f.readBytes(buffer32, sizeof(buffer32));
-  int bmpHeight  = read32(buffer32);
-  
-  read = f.readBytes(buffer16, sizeof(buffer16));
-
-  if(read16(buffer16) == 1) // # planes -- must be '1'
-  {
-    read = f.readBytes(buffer16, sizeof(buffer16));
-    uint8_t bmpDepth = read16(buffer16); // bits per pixel
-
-    //Serialprint("Bit Depth: %d", bmpDepth);
-    
-    read = f.readBytes(buffer32, sizeof(buffer32));
-    uint16_t compression = read32(buffer32);
-
-    if((bmpDepth == 24) && (compression == 0)) // only 24 depth is supported; 0 = uncompressed
-    {
-      button->bmpWidth = bmpWidth;
-      button->bmpHeight = bmpHeight;
-      button->filePos = f.curPosition() + 2;
-      button->initialized = true;
-    }
-  }
-
-  f.close();
-}
-
-void drawBMP(ButtonConfig* button, uint16_t x0, uint16_t y0)
-{
-  if (!button->initialized)
-    return;
-
-  File f; 
-  bool success = f.open(button->path->c_str()); 
-  if (!success) {
-    Serialprint("Could not open file %s \n", button->path->c_str());
-    return;
-  }
-
-  f.seek(button->filePos);
-  
-  // Read whole picture in one go 
-  size_t length = button->bmpHeight * button->bmpWidth; 
-  // (button->bmpHeight * button->bmpWidth * 3 + 3) & ~3
-  uint8_t* data = (uint8_t*) malloc(length * 3);
-  if (data == NULL)
-    return;
-
-  f.readBytes(data, length * 3);
-  f.close();
-
-  for (uint16_t row = 0; row < button->bmpHeight; ++row)
-  {
-    size_t m = row * button->bmpWidth * 3;
-    for (uint16_t col = 0; col < button->bmpWidth; ++col) 
-    {
-      uint16_t c = my_lcd.Color_To_565(data[m+2], data[m+1], data[m+0]);
-      my_lcd.Set_Draw_color(c);
-      if (flipBMPs)
-        my_lcd.Draw_Pixel(x0 + col, y0 + button->bmpHeight - 1 - row);
-      else
-        my_lcd.Draw_Pixel(x0 + col, y0 + row);
-      m+=3;
-    }
-  }
-  free(data);
+  Serial.println();
 }
 
 void drawButtons(ConfigData* cfgData)
@@ -459,10 +260,10 @@ void drawButtons(ConfigData* cfgData)
   my_lcd.Fill_Screen(BLACK); 
   
   for (size_t i = 0; i < cfgData->buttonsCount; ++i)
-    cfgData->buttons[i]->onScreen = false;
-  cfgData->buttonSelectAll.onScreen = false;
-  cfgData->buttonPrev.onScreen = false;
-  cfgData->buttonNext.onScreen = false;
+    cfgData->buttons[i]->SetOnScreen(false);
+  cfgData->ButtonSelectAll.SetOnScreen(false);
+  cfgData->ButtonPrev.SetOnScreen(false);
+  cfgData->ButtonNext.SetOnScreen(false);
 
   SdFat sd;
   if (!sd.begin(SD_CONFIG))
@@ -490,27 +291,27 @@ void drawButtons(ConfigData* cfgData)
         y2 = y1 + cellHeight;
       }
 
-      ButtonConfig* button = NULL;
+      Button* button = NULL;
 
       if (cfgData->isInButtonSelection && row == 0 && col == 0 && cfgData->currentPageIndex == 0) {
-        button = &(cfgData->buttonSelectAll);
+        button = &(cfgData->ButtonSelectAll);
       }
       else if (cfgData->lastPageIndex > 1 && row == cfgData->rows - 1 && col == cfgData->cols - 1) {
-        button = &(cfgData->buttonNext);
+        button = &(cfgData->ButtonNext);
       }
       else if (cfgData->lastPageIndex > 1 && row == cfgData->rows - 1 && col == cfgData->cols - 2) {
-        button = &(cfgData->buttonPrev);
+        button = &(cfgData->ButtonPrev);
       }
       else if (cfgData->currentPageIndex == 0 && cfgData->lastPageIndex != 0 && row == cfgData->rows - 1 && col == cfgData->cols - 1) {
         // first page, only draw next, draw it in the last cell 
-        button = &(cfgData->buttonNext);
+        button = &(cfgData->ButtonNext);
       }
       else if (cfgData->currentPageIndex == cfgData->lastPageIndex && cfgData->lastPageIndex != 0 && row == cfgData->rows - 1 && col == cfgData->cols - 1) {
         // last page, only draw prev, draw it in the last cell 
-        button = &(cfgData->buttonPrev);
+        button = &(cfgData->ButtonPrev);
       }
       else {
-        ButtonConfig **array;
+        Button **array;
         size_t arraySize;
 
         if (cfgData->isInButtonSelection) {
@@ -530,76 +331,50 @@ void drawButtons(ConfigData* cfgData)
       if (button == NULL)
         continue;
       
-      button->onScreen = true;
-      button->x1 = x1;
-      button->x2 = x2;
-      button->y1 = y1;
-      button->y2 = y2;
+      button->SetOnScreen(true);
+      button->SetXY(x1, y1, x2, y2);
 
       my_lcd.Set_Text_Size(2);
       my_lcd.Set_Text_colour(GREEN);
       my_lcd.Set_Text_Back_colour(BLACK);
 
-      if (button->type == DEF_BUTTON_TYPE_NEXT)
+      if (button->GetType() == DEF_BUTTON_TYPE_NEXT)
         my_lcd.Print_String(">", x1+cellWidth/5, y1+cellHeight/2);
-      else if (button->type == DEF_BUTTON_TYPE_PREV)
+      else if (button->GetType() == DEF_BUTTON_TYPE_PREV)
         my_lcd.Print_String("<", x1+cellWidth/5, y1+cellHeight/2);
-      else if (button->type == DEF_BUTTON_TYPE_SELECT_ALL)
+      else if (button->GetType() == DEF_BUTTON_TYPE_SELECT_ALL)
         my_lcd.Print_String("A", x1+cellWidth/5, y1+cellHeight/2);
       else
         my_lcd.Print_String(dimensions, x1+cellWidth/5, y1+cellHeight/2);
       
       my_lcd.Set_Draw_color(WHITE);
-      my_lcd.Draw_Round_Rectangle(x1, y1, x2, y2, rectangleRoundness);
+      my_lcd.Draw_Round_Rectangle(x1, y1, x2, y2, DEF_BUTTON_RECTANGLE_ROUNDNESS);
       
-      if (button->initialized) {
-        uint16_t x0 = x1 + (cellWidth-button->bmpWidth)/2;
-        uint16_t y0 = y1 + (cellHeight-button->bmpHeight)/2;
-        button->bmpX0 = x0;
-        button->bmpY0 = y0;
-        drawBMP(button, x0, y0);
+      if (button->IsInitialized()) {
+        uint16_t x0 = x1 + (cellWidth-button->GetBMPWidth())/2;
+        uint16_t y0 = y1 + (cellHeight-button->GetBMPHeight())/2;
+        button->SetBMPXY(x0, y0);
+        button->DrawBMP(my_lcd);
       }
 
-      if (button->selected && cfgData->isInButtonSelection)
-        drawButtonSelection(button);
+      if (button->IsSelected() && cfgData->isInButtonSelection)
+        button->DrawSelection(my_lcd);
     }
   }
   sd.end();
 }
 
-void drawButtonSelection(ButtonConfig* button) {
-  if (button->selected == true)
-    my_lcd.Set_Draw_color(GREEN);
-  else
-    my_lcd.Set_Draw_color(BLACK);
-
-  if (button->initialized) {
-    for (uint16_t i = 1; i < 8; ++i) {
-      uint16_t x0 = button->bmpX0 - i;
-      uint16_t y0 = button->bmpY0 - i;
-      uint16_t x1 = x0 + button->bmpWidth + i*2;
-      uint16_t y1 = y0 + button->bmpHeight + i*2;
-      my_lcd.Draw_Rectangle(x0, y0, x1, y1);
-    }
-  } else {
-    for (uint16_t i = 1; i < 8; ++i) {
-      my_lcd.Draw_Round_Rectangle(button->x1 + i, button->y1 + i, button->x2 - i, button->y2 - i, rectangleRoundness);
-    }
-  }
-}
-
-
 void loop() 
 {
   my_touch.TP_Scan(0);
   
-  if (isButtonPressed(PIN_BUTTON_1)) {
+  if (isPhysicalButtonPressed(PIN_BUTTON_1)) {
     tone(PIN_BUZZER, 1000, 100);
     delay(DEF_PHYSICAL_PRESS_DELAY);
     
     size_t j = 0;
     for(size_t i = 0; i < config.buttonsCount; ++i) {
-      if (config.buttons[i]->selected) {
+      if (config.buttons[i]->IsSelected()) {
         config.selectedButtons[j++] = config.buttons[i];
       }
     }
@@ -617,7 +392,7 @@ void loop()
   
     drawButtons(&config);
   }
-  if (isButtonPressed(PIN_BUTTON_2)) {
+  if (isPhysicalButtonPressed(PIN_BUTTON_2)) {
     tone(PIN_BUZZER, 1000, 100);
     delay(100);
     tone(PIN_BUZZER, 1000, 100);
@@ -645,7 +420,7 @@ void loop()
     //if (flipXY)
     //  swap(x, y);
 
-    ButtonConfig **array;
+    Button **array;
     size_t arraySize;
 
     if (config.isInButtonSelection) {
@@ -656,28 +431,28 @@ void loop()
       arraySize = config.selectedButtonsCount;
     }
 
-    if (config.buttonPrev.onScreen && config.buttonPrev.x1 < x && x < config.buttonPrev.x2 && config.buttonPrev.y1 < y && y < config.buttonPrev.y2) {
+    if (config.ButtonPrev.IsOnScreen() && config.ButtonPrev.IsHit(x,y)) {
       tone(PIN_BUZZER, 1000, 10);
       config.currentPageIndex = (config.currentPageIndex == 0 ? config.lastPageIndex : config.currentPageIndex - 1);
       drawButtons(&config);
       return;
     }
-    if (config.buttonNext.onScreen && config.buttonNext.x1 < x && x < config.buttonNext.x2 && config.buttonNext.y1 < y && y < config.buttonNext.y2) {
+    if (config.ButtonNext.IsOnScreen() && config.ButtonNext.IsHit(x,y)) {
       tone(PIN_BUZZER, 1000, 10);
       config.currentPageIndex = (config.currentPageIndex == config.lastPageIndex ? 0 : config.currentPageIndex + 1);
       drawButtons(&config);
       return;
     }
-    if (config.buttonSelectAll.onScreen && config.buttonSelectAll.x1 < x && x < config.buttonSelectAll.x2 && config.buttonSelectAll.y1 < y && y < config.buttonSelectAll.y2) {
+    if (config.ButtonSelectAll.IsOnScreen() && config.ButtonSelectAll.IsHit(x,y)) {
       tone(PIN_BUZZER, 1000, 10);
       
-      config.buttonSelectAll.selected = !config.buttonSelectAll.selected;
-      drawButtonSelection(&(config.buttonSelectAll));
+      config.ButtonSelectAll.SetSelected(!config.ButtonSelectAll.IsSelected());
+      config.ButtonSelectAll.DrawSelection(my_lcd);
 
       for(size_t j = 0; j < arraySize; ++j) {
-        array[j]->selected = config.buttonSelectAll.selected;
-        if (array[j]->onScreen) {
-          drawButtonSelection(array[j]);
+        array[j]->SetSelected(config.ButtonSelectAll.IsSelected());
+        if (array[j]->IsOnScreen()) {
+          array[j]->DrawSelection(my_lcd);
         }
       }
 
@@ -695,49 +470,21 @@ void loop()
     
     for (size_t i = i0; i < iN; ++i) 
     {
-      ButtonConfig* b = array[i];
+      Button* b = array[i];
 
-      if (b->x1 < x && x < b->x2 && b->y1 < y && y < b->y2) {
+      if (b->IsHit(x, y)) {
         // button pressed
-        Serialprint("%s\n", b->path->c_str());
+        Serialprint("%s\n", b->GetBMPPath().c_str());
         tone(PIN_BUZZER, 1000, 10);
 
         if (config.isInButtonSelection)
         {
-          b->selected = !b->selected;
-          drawButtonSelection(b);
+          b->SetSelected(!b->IsSelected());
+          b->DrawSelection(my_lcd);
         }
         else 
         {
-          String keys = *(b->keys);
-          int index = keys.indexOf('[');
-          while(index >= 0) {
-            String str = keys.substring(index+1, keys.indexOf(']', index));
-            //Serialprint("%d Key pressed = %s\n", i, str.c_str());
-
-            uint16_t key = -1;
-            if (str.equalsIgnoreCase("up"))
-              key = KEY_UP_ARROW;
-            else if (str.equalsIgnoreCase("down"))
-              key = KEY_DOWN_ARROW;
-            else if (str.equalsIgnoreCase("right")) 
-              key = KEY_RIGHT_ARROW;
-            else if (str.equalsIgnoreCase("left")) 
-              key = KEY_LEFT_ARROW;
-            else if (str.equalsIgnoreCase("ctrl")) 
-              key = KEY_LEFT_CTRL;
-            else if (str.length() == 1) {
-              key = str[0];
-            }
-
-            //Serialprint("str = '%s', key = %x\n", str.c_str(), key);
-            if (key >= 0) {
-              Keyboard.press(key);    delay(DEF_KEY_SEND_DELAY); 
-              Keyboard.release(key);  delay(DEF_KEY_SEND_DELAY);
-            }
-            
-            index = keys.indexOf('[', index+1);
-          }
+          b->SendKeys();
         }
         delay(DEF_PHYSICAL_PRESS_DELAY);
         break;
