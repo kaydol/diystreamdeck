@@ -1,19 +1,24 @@
 
-#include <Arduino.h>
-#include <SdFat.h>
-#include <LCDWIKI_KBV.h> //Hardware-specific library
+
+// ReSharper disable CppInconsistentNaming
+// ReSharper disable IdentifierTypo
+// ReSharper disable CppClangTidyBugproneNarrowingConversions
 
 #ifndef BUTTON_H
 #define BUTTON_H
 
+#include <Arduino.h>
+#include <SdFat.h>
+#include <LCDWIKI_KBV.h> //Hardware-specific library
+
 #pragma pack(push, 1) // Disable padding for easier BMP file reading
 
 struct BMPFileHeader {
-  uint16_t file_type{0x4D42};          // File type always BM which is 0x4D42
-  uint32_t file_size{0};               // Size of the file (in bytes)
-  uint16_t reserved1{0};               // Reserved, always 0
-  uint16_t reserved2{0};               // Reserved, always 0
-  uint32_t offset_data{0};             // Start position of pixel data (bytes from the beginning of the file)
+  uint16_t file_type{ 0x4D42 };          // File type always BM which is 0x4D42
+  uint32_t file_size{ 0 };               // Size of the file (in bytes)
+  uint16_t reserved1{ 0 };               // Reserved, always 0
+  uint16_t reserved2{ 0 };               // Reserved, always 0
+  uint32_t offset_data{ 0 };             // Start position of pixel data (bytes from the beginning of the file)
 };
 
 struct BMPInfoHeader {
@@ -49,15 +54,16 @@ class Button {
     BMPInfoHeader _bmp_info_header;
     BMPColorHeader _bmp_color_header;
 
-    String *_path, *_keys;
+	bool _isInitialized, _selected, _onScreen, _bmpIsFlipped;
     int8_t _type;
-    bool _isInitialized, _selected, _onScreen, _bmpIsFlipped;
-    int16_t _bmpX, _bmpY, _x1, _x2, _y1, _y2;
+
+	String *_path, *_keys;
+    int16_t _bmpX, _bmpY, _x1, _x2, _y1, _y2, _width, _height;
     
   public: 
     Button() {
-      _path = NULL;
-      _keys = NULL;
+      _path = nullptr;
+      _keys = nullptr;
       _isInitialized = false;
       _selected = false;
       _onScreen = false;
@@ -65,34 +71,40 @@ class Button {
       _type = DEF_BUTTON_TYPE_UNDEFINED;
     }
     
-    bool IsInitialized() { return _isInitialized; }
-    bool IsSelected() { return _selected; }
-    bool IsOnScreen() { return _onScreen; }
-    void SetSelected(bool selected) { _selected = selected; }
-    void SetOnScreen(bool onScreen) { _onScreen = onScreen; }
-    void SetType(uint8_t type) { _type = type; }
-    uint8_t GetType() { return _type; }
+    bool IsInitialized() const { return _isInitialized; }
+    bool IsSelected() const { return _selected; }
+    bool IsOnScreen() const { return _onScreen; }
+    void SetSelected(const bool selected) { _selected = selected; }
+    void SetOnScreen(const bool onScreen) { _onScreen = onScreen; }
+    void SetType(const uint8_t type) { _type = type; }
+    uint8_t GetType() const { return _type; }
     void SetKeys(String* keys) { _keys = keys; }
-    String GetKeys() {  if (_keys == NULL) return ""; return *_keys; }
+    String GetKeys() const { return *_keys; }
     void SetBMPPath(String* path) { _path = path; }
-    String GetBMPPath() { if (_path == NULL) return ""; return *_path; }
-    uint8_t GetBMPDepth() { return _bmp_info_header.bit_count; } 
-    int16_t GetBMPWidth() { return _bmp_info_header.width; }
-    int16_t GetBMPHeight() { return _bmp_info_header.height; }
-    int16_t GetBMPX() { return _bmpX; }
-    int16_t GetBMPY() { return _bmpY; }
-    int16_t SetBMPXY(int16_t bmpX, int16_t bmpY) { _bmpX = bmpX; _bmpY = bmpY; }
-    int16_t GetX1() { return _x1; }
-    int16_t GetX2() { return _x2; }
-    int16_t GetY1() { return _y1; }
-    int16_t GetY2() { return _y2; }
-    int16_t SetXY(int16_t x1, int16_t y1, int16_t x2, int16_t y2) { _x1 = x1; _x2 = x2; _y1 = y1; _y2 = y2; }
-    
+    String GetBMPPath() const { return *_path; }
+    uint8_t GetBMPDepth() const { return _bmp_info_header.bit_count; } 
+    int16_t GetBMPWidth() const { return _bmp_info_header.width; }
+    int16_t GetBMPHeight() const { return _bmp_info_header.height; }
+    uint32_t GetBMPOffset() const { return _file_header.offset_data; }
+    int16_t GetBMPX() const { return _bmpX; }
+    int16_t GetBMPY() const { return _bmpY; }
+    void SetBMPXY(const int16_t bmpX, const int16_t bmpY) { _bmpX = bmpX; _bmpY = bmpY; }
+    int16_t GetX1() const { return _x1; }
+    int16_t GetX2() const { return _x2; }
+    int16_t GetY1() const { return _y1; }
+    int16_t GetY2() const { return _y2; }
+    void SetXY(const int16_t x1, const int16_t y1, const int16_t x2, const int16_t y2) { _x1 = x1; _x2 = x2; _y1 = y1; _y2 = y2; }
+    void SetWidth(const uint16_t width) { _width = width; }
+    void SetHeight(const uint16_t height) { _height = height; }
+    uint16_t GetHeight() const { return _height; }
+    uint16_t GetWidth() const { return _width; }
+    bool IsHit(const uint16_t x, const uint16_t y) const { return GetX1() < x && x < GetX2() && GetY1() < y && y < GetY2(); }
+
     uint8_t InitBMP(String* path);
-    uint8_t DrawBMP(LCDWIKI_KBV my_lcd);
-    void DrawSelection(LCDWIKI_KBV my_lcd);
-    bool IsHit(uint16_t x, uint16_t y) { return GetX1() < x && x < GetX2() && GetY1() < y && y < GetY2(); }
-    void SendKeys();
+    uint8_t DrawBMP(LCDWIKI_KBV* my_lcd) const;
+    void DrawSelection(LCDWIKI_KBV* my_lcd) const;
+    void DrawRectangle(LCDWIKI_KBV* my_lcd, const char* text) const;
+    void SendKeys() const;
 };
 
 #endif 

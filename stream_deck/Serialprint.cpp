@@ -11,7 +11,7 @@ void StreamPrint_progmem(Print &out,PGM_P format,...)
   
   // null terminate - leave last char since we might need it in worst case for result's \0
   formatString[ sizeof(formatString)-2 ]='\0';
-  ptr=&formatString[ strlen(formatString)+1 ]; // our result buffer...
+  ptr = &formatString[ strlen(formatString)+1 ]; // our result buffer...
   
   va_list args;
   va_start (args,format);
